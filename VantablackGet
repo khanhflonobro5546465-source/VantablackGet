@@ -1,4 +1,3 @@
-
 <!doctype html>
 <html lang="vi">
 <head>
@@ -20,6 +19,7 @@ body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     background-color: var(--bg);
     color: var(--text);
+    min-height: 100vh; /* Fix lỗi sập giao diện trên trình duyệt cũ */
     min-height: 100svh;
     display: grid;
     place-items: center;
@@ -160,18 +160,20 @@ header { display: flex; align-items: center; gap: 15px; margin-bottom: 25px; }
 </div>
 
 <script>
-// --- ANTI DEVTOOLS (Giống Delta/Fluxus) ---
+// --- ANTI DEVTOOLS ---
 document.addEventListener('contextmenu', e => e.preventDefault());
 document.addEventListener('keydown', e => {
     if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && e.key === 'I') || (e.ctrlKey && e.key === 'u')) {
         e.preventDefault();
     }
 });
+
 setInterval(() => {
     const before = new Date().getTime();
     debugger; // Stops execution if DevTools is open
     const after = new Date().getTime();
-    if (after - before > 100) {
+    // Tăng lên 1000ms (1 giây) để tránh nhận diện nhầm trên điện thoại hoặc máy yếu gây lỗi trắng trang
+    if (after - before > 1000) {
         document.body.innerHTML = "<h1 style='color:red; text-align:center; margin-top:20vh;'>Tampering Detected. Session closed.</h1>";
     }
 }, 2000);
@@ -195,24 +197,21 @@ scene.addEventListener('mouseleave', () => {
     card.style.setProperty('--ry', `0deg`);
 });
 
-// --- HWID HASHING SYSTEM (SERVERLESS - ĐỒNG BỘ VỚI LUA) ---
+// --- HWID HASHING SYSTEM ---
 function generateKeyFromHWID(hwid) {
     if (!hwid) return "INVALID_OR_MISSING_HWID";
     
-    // Nếu link là chuỗi mã hoá (Base64) thì giải mã để lấy HWID gốc
     let realHwid = hwid;
     try { realHwid = atob(hwid); } catch(e) { realHwid = hwid; }
 
     const salt = "VANTABLACK_SECRET_991";
     const combined = realHwid + salt;
     
-    // Vòng lặp Hash đồng bộ 100% với Code Lua
     let hash = 0;
     for (let i = 0; i < combined.length; i++) {
         hash = ((hash * 31) + combined.charCodeAt(i)) % 1000000000;
     }
     
-    // Format thành Hex 8 ký tự
     let hex = (hash >>> 0).toString(16).toUpperCase();
     while (hex.length < 8) hex = "0" + hex;
     
@@ -220,16 +219,14 @@ function generateKeyFromHWID(hwid) {
 }
 
 // --- VÀO LÀ LẤY KEY NGAY LẬP TỨC ---
-// Script chạy thẳng không qua setTimeout hay chờ đợi
 const urlParams = new URLSearchParams(window.location.search);
 const paramValue = urlParams.get('token') || urlParams.get('hwid');
 const finalKey = generateKeyFromHWID(paramValue);
 
-// Cập nhật lên Giao diện cực nhanh
 const keyBox = document.getElementById('keyBox');
 if (finalKey === "INVALID_OR_MISSING_HWID") {
     keyBox.innerText = "Lỗi: Không tìm thấy HWID!";
-    keyBox.style.color = "red";
+    keyBox.style.color = "#ef4444"; // Đỏ báo lỗi
 } else {
     keyBox.innerText = finalKey;
 }
@@ -252,7 +249,7 @@ const copyAction = async () => {
     btn.style.background = "#10b981";
     setTimeout(() => {
         btn.innerText = "COPY ACCESS KEY";
-        btn.style.background = "";
+        btn.style.background = ""; // Khôi phục gradient ban đầu
     }, 2000);
 };
 
