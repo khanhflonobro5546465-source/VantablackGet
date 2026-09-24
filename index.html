@@ -135,7 +135,7 @@ header { display: flex; align-items: center; gap: 15px; margin-bottom: 25px; }
 
         <div class="depth-mid">
             <div class="label">
-                <span>YOUR HWID KEY</span>
+                <span>YOUR DAILY HWID KEY</span>
                 <span style="color: #10b981;">🔒 1-TO-1 LOCKED</span>
             </div>
             <div class="key-box" id="keyBox">
@@ -148,7 +148,7 @@ header { display: flex; align-items: center; gap: 15px; margin-bottom: 25px; }
         </button>
         
         <div class="depth-low" style="text-align: center; margin-top: 20px; font-size: 11px; color: var(--text-dim); font-weight: 600;">
-            Key applies for HWID provided in URL. <br> Do not share your key.
+            Key resets every 24 hours. Applies to current HWID.<br> Do not share your key.
         </div>
     </div>
 </div>
@@ -190,14 +190,17 @@ scene.addEventListener('mouseleave', () => {
     card.style.setProperty('--ry', `0deg`);
 });
 
-// --- HWID HASHING SYSTEM ĐỒNG BỘ VỚI LUA ---
+// --- THUẬT TOÁN 1 NGÀY 1 KEY (ĐỒNG BỘ VỚI LUA THEO NGÀY UTC) ---
 function generateKeyFromHWID(hwid) {
     if (!hwid) return "INVALID_OR_MISSING_HWID";
     
     let realHwid = hwid;
     try { realHwid = atob(hwid); } catch(e) { realHwid = hwid; }
 
-    const secret = realHwid + "VANTA_SYNC_2026";
+    // Lấy ngày hiện tại chuẩn UTC, giống hệt os.date("!%Y-%m-%d") trong Lua
+    const current_date = new Date().toISOString().split('T')[0];
+    const secret = realHwid + "VANTA_SYNC_2026_" + current_date;
+    
     let numHash = 0;
     let hexHash = 0;
     
@@ -218,7 +221,7 @@ function generateKeyFromHWID(hwid) {
     return `Vantablack_${numHash}_${hexStr}_${s1}${s2}${s3}${s4}`;
 }
 
-// --- LOGIC TẠO KEY & TỰ ĐỘNG HUỶ ---
+// --- LOGIC TẠO KEY ---
 const urlParams = new URLSearchParams(window.location.search);
 const paramValue = urlParams.get('token') || urlParams.get('hwid');
 const keyBox = document.getElementById('keyBox');
@@ -231,25 +234,17 @@ if (!paramValue) {
     keyBox.style.color = "#ef4444";
     btn.style.display = "none";
 } else {
-    if (sessionStorage.getItem('vanta_seen_' + paramValue)) {
-        keyBox.innerText = "🔒 Key đã bị ẩn bảo mật do tải lại trang.";
+    // Luôn đưa lại Key cũ nếu vẫn trong cùng 1 ngày
+    finalKey = generateKeyFromHWID(paramValue);
+    keyBox.innerText = finalKey;
+    
+    // Tự động biến mất MẶT CHỮ trên web sau 10 phút (600.000 ms)
+    setTimeout(() => {
+        keyBox.innerText = "🔒 Key đã hết hạn hiển thị (sau 10 phút)!";
         keyBox.style.color = "#ef4444";
         keyBox.style.fontSize = "13px";
         btn.style.display = "none";
-    } else {
-        finalKey = generateKeyFromHWID(paramValue);
-        keyBox.innerText = finalKey;
-        
-        sessionStorage.setItem('vanta_seen_' + paramValue, 'true');
-
-        // Tự động biến mất sau 10 phút (600.000 ms)
-        setTimeout(() => {
-            keyBox.innerText = "🔒 Key đã hết hạn hiển thị (sau 10 phút)!";
-            keyBox.style.color = "#ef4444";
-            keyBox.style.fontSize = "13px";
-            btn.style.display = "none";
-        }, 600000);
-    }
+    }, 600000);
 }
 
 // Hành động Copy Key
